@@ -36,7 +36,11 @@ class DataGenerator(object):
         self.add_column(column)
 
     def define_str_column(self,name,size):
-        column = {"name":name,"type":"varchar("+size+")"}
+        column = {"name":name,"type":"varchar("+str(size)+")"}
+        self.add_column(column)
+
+    def define_list_str_column(self,name,size,list):
+        column = {"name":name,"type":"varchar("+str(size)+")","list":list}
         self.add_column(column)
 
     # In criteria, follow format >,<,==,>=,<= {date} ex:    " > '2000-01-01'"
@@ -67,8 +71,8 @@ class DataGenerator(object):
             res = self.random_float_in_range(column.get("max"),column.get("min"))
         if type == "datetime2":
             res = self.random_date_with_op(column.get("operator"),column.get("date"))
-        if type.startswith("varchar"):
-            res = "Nothing"
+        if type.startswith("varchar") and column.has_key("list"):
+            res = self.random_str_in_list(column.get("list"))
         return res
 
     def random_int_in_range(self,max,min):
@@ -77,6 +81,12 @@ class DataGenerator(object):
         return Rand.randint(i_min,i_max)
 
     def random_int_in_list(self,list):
+        max = len(list)-1
+        min = 0
+        index = Rand.randint(min,max)
+        return list[index]
+
+    def random_str_in_list(self,list):
         max = len(list)-1
         min = 0
         index = Rand.randint(min,max)
@@ -112,6 +122,21 @@ class DataGenerator(object):
                 if i < self.count-1:
                     script.write(",\n")
             script.write(";")
+
+    def generate_csv(self,fullpath):
+        with open(fullpath,'w') as script:
+            #script.write('insert into '+self.schema+"."+self.table+"(\n")
+            cols = ""
+            for column in self.columns:
+                cols=cols+column.get("name")+","
+            script.write(cols[:-1]+"\r\n")
+            for i in range(0,self.count):
+                self.track(i)
+                entry = self.generate_entry()
+                script.write(""+str(entry)[1:-1]+",")
+                if i < self.count-1:
+                    script.write("\r\n")
+            script.write("")
 
     def define_count(self,count):
         self.count = count
